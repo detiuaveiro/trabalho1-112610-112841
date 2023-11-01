@@ -22,7 +22,6 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -139,13 +138,13 @@ static int check(int condition, const char* failmsg) {
   return condition;
 }
 
-// static inline int round(double n) {
-//   if (n > 0) {
-//     return (int)(n + 0.5);
-//   }
+static inline int round(double n) {
+  if (n > 0) {
+    return (int)(n + 0.5);
+  }
 
-//   return (int)(n - 0.5);
-// }
+  return (int)(n - 0.5);
+}
 
 /// Init Image library.  (Call once!)
 /// Currently, simply calibrate instrumentation and set names of counters.
