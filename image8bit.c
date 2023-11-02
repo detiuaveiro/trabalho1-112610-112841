@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "instrumentation.h"
 
@@ -638,10 +639,12 @@ static uint8 RectAvgColor(const Image img, int x, int y, int w, int h) {
 
   int sum = 0;
 
-  for (int i = x; i < x + w; ++i) {
-    for (int j = y; j < y + h; ++j) {
-      sum += ImageGetPixel(img, i, j);
+  for (int row = y; row < y + h; ++row) {
+    for (int col = x; col < x + w; ++col) {
+      // printf("%d ", ImageGetPixel(img, c, r));
+      sum += ImageGetPixel(img, col, row);
     }
+    // printf("\n");
   }
 
   return round((double)sum / (w * h));
@@ -670,17 +673,25 @@ static inline int max(int a, int b) {
 void ImageBlur(Image img, int dx, int dy) {  ///
   assert(img != NULL);
 
+  Image img_copy = ImageCreate(img->width, img->height, img->maxval);
+
+  if (img_copy == NULL) {
+    return NULL;
+  }
+
+  memcpy(img_copy->pixel, img->pixel, img->height * img->width);
+
   int x, y, w, h;
 
-  for (int i = 0; i < img->width; ++i) {
-    for (int j = 0; j < img->height; ++j) {
-      x = max(0, i - dx);
-      y = max(0, j - dy);
+  for (int row = 0; row < img->height; ++row) {
+    for (int col = 0; col < img->width; ++col) {
+      x = max(0, col - dx);
+      y = max(0, row - dy);
 
-      w = min(2 * dx + 1, img->width - i);
-      h = min(2 * dy + 1, img->height - j);
+      w = min(dx + min(dx + 1, col), img->width - col);
+      h = min(dy + min(dy + 1, row), img->height - row);
 
-      img->pixel[G(img, i, j)] = RectAvgColor(img, x, y, w, h);
+      img->pixel[G(img, col, row)] = RectAvgColor(img_copy, x, y, w, h);
     }
   }
 }
