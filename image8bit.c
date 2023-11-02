@@ -506,7 +506,7 @@ Image ImageRotate(Image img) {  ///
     for (int j = 0; j < img->height; ++j) {
       PIXMEM += 1;
 
-      new_img->pixel[G(new_img, j, img->width - i - 1)] = img->pixel[G(img, i, j)];
+      new_img->pixel[G(new_img, j, img->height - i - 1)] = img->pixel[G(img, i, j)];
     }
   }
 
