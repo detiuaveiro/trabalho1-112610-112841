@@ -651,7 +651,18 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) {  ///
 int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) {  ///
   assert(img1 != NULL);
   assert(img2 != NULL);
-  // Insert your code here!
+
+  for (int x = 0; x <= img1->width - img2->width; ++x) {
+    for (int y = 0; y <= img1->height - img2->height; ++y) {
+      if (ImageMatchSubImage(img1, x, y, img2)) {
+        *px = x;
+        *py = y;
+        return 1;
+      }
+    }
+  }
+
+  return 0;
 }
 
 /// Filtering
@@ -684,7 +695,7 @@ void ImageBlur(Image img, int dx, int dy) {  ///
   Image img_copy = ImageCreate(img->width, img->height, img->maxval);
 
   if (img_copy == NULL) {
-    return NULL;
+    return;
   }
 
   memcpy(img_copy->pixel, img->pixel, img->height * img->width);
