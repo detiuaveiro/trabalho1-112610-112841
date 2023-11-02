@@ -694,4 +694,6 @@ void ImageBlur(Image img, int dx, int dy) {  ///
       img->pixel[G(img, col, row)] = RectAvgColor(img_copy, x, y, w, h);
     }
   }
+
+  ImageDestroy(img_copy);
 }
