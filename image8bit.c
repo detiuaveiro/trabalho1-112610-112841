@@ -695,5 +695,5 @@ void ImageBlur(Image img, int dx, int dy) {  ///
     }
   }
 
-  ImageDestroy(img_copy);
+  ImageDestroy(&img_copy);
 }
