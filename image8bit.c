@@ -604,7 +604,19 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) {  ///
   assert(img1 != NULL);
   assert(img2 != NULL);
   assert(ImageValidPos(img1, x, y));
-  // Insert your code here!
+
+  int match = 1;
+
+  for (int i = 0; i < img2->width && match; ++i) {
+    for (int j = 0; j < img2->height && match; ++j) {
+      uint8 pixel1 = img1->pixel[G(img1, i + x, j + y)];
+      uint8 pixel2 = img2->pixel[G(img2, i, j)];
+
+      match = pixel1 == pixel2;
+    }
+  }
+
+  return match;
 }
 
 /// Locate a subimage inside another image.
@@ -619,10 +631,56 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) {  ///
 
 /// Filtering
 
+/// Returns the average color of the pixels inside the rectangle.
+static uint8 RectAvgColor(const Image img, int x, int y, int w, int h) {
+  assert(img != NULL);
+  assert(ImageValidRect(img, x, y, w, h));
+
+  int sum = 0;
+
+  for (int i = x; i < x + w; ++i) {
+    for (int j = y; j < y + h; ++j) {
+      sum += ImageGetPixel(img, i, j);
+    }
+  }
+
+  return round((double)sum / (w * h));
+}
+
+static inline int min(int a, int b) {
+  if (a < b) {
+    return a;
+  }
+
+  return b;
+}
+
+static inline int max(int a, int b) {
+  if (a > b) {
+    return a;
+  }
+
+  return b;
+}
+
 /// Blur an image by a applying a (2dx+1)x(2dy+1) mean filter.
 /// Each pixel is substituted by the mean of the pixels in the rectangle
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
 void ImageBlur(Image img, int dx, int dy) {  ///
-  // Insert your code here!
+  assert(img != NULL);
+
+  int x, y, w, h;
+
+  for (int i = 0; i < img->width; ++i) {
+    for (int j = 0; j < img->height; ++j) {
+      x = max(0, i - dx);
+      y = max(0, j - dy);
+
+      w = min(2 * dx + 1, img->width - i);
+      h = min(2 * dy + 1, img->height - j);
+
+      img->pixel[G(img, i, j)] = RectAvgColor(img, x, y, w, h);
+    }
+  }
 }
