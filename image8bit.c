@@ -496,7 +496,7 @@ void ImageBrighten(Image img, double factor) {  ///
 Image ImageRotate(Image img) {  ///
   assert(img != NULL);
 
-  Image new_img = ImageCreate(img->width, img->height, img->maxval);
+  Image new_img = ImageCreate(img->height, img->width, img->maxval);
 
   if (new_img == NULL) {
     return NULL;
