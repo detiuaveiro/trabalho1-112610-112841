@@ -139,6 +139,30 @@ static int check(int condition, const char* failmsg) {
   return condition;
 }
 
+/**
+ * Como não sabemos se podemos usar funções da libm, devido ao Makefile dado não linkar com
+ * essa biblioteca, implementámos as funções "min", "max" e "round" da libm
+ */
+
+/// Returns the minimum between the integers a and b
+static inline int min(int a, int b) {
+  if (a < b) {
+    return a;
+  }
+
+  return b;
+}
+
+/// Returns the maximum between the integers a and b
+static inline int max(int a, int b) {
+  if (a > b) {
+    return a;
+  }
+
+  return b;
+}
+
+/// Rounds the double n to the nearest integer
 static inline int round(double n) {
   if (n > 0) {
     return (int)(n + 0.5);
@@ -648,22 +672,6 @@ static uint8 RectAvgColor(const Image img, int x, int y, int w, int h) {
   }
 
   return round((double)sum / (w * h));
-}
-
-static inline int min(int a, int b) {
-  if (a < b) {
-    return a;
-  }
-
-  return b;
-}
-
-static inline int max(int a, int b) {
-  if (a > b) {
-    return a;
-  }
-
-  return b;
 }
 
 /// Blur an image by a applying a (2dx+1)x(2dy+1) mean filter.
