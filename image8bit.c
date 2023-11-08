@@ -203,8 +203,7 @@ Image ImageCreate(int width, int height, uint8 maxval) {  ///
   Image img = (Image)malloc(sizeof(struct image));
 
   if (img == NULL) {
-    errno = 12;
-    errCause = "Memory allocation failed";
+    errCause = "Memory allocation for Image structure failed";
     return NULL;
   }
 
@@ -214,7 +213,6 @@ Image ImageCreate(int width, int height, uint8 maxval) {  ///
   img->pixel = malloc(img->width * img->height);
 
   if (img->pixel == NULL) {
-    errno = 12;
     errCause = "Memory allocation for pixel array failed";
     free(img);
     return NULL;
@@ -695,7 +693,8 @@ void ImageBlur(Image img, int dx, int dy) {  ///
   Image img_copy = ImageCreate(img->width, img->height, img->maxval);
 
   if (img_copy == NULL) {
-    return;
+    fprintf(stderr, "ERROR: Memory allocation failed: %s\n", strerror(errno));
+    exit(1);
   }
 
   memcpy(img_copy->pixel, img->pixel, img->height * img->width);
