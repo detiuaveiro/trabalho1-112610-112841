@@ -500,11 +500,10 @@ Image ImageRotate(Image img) {  ///
     return NULL;
   }
 
-  for (int i = 0; i < img->width; ++i) {
-    for (int j = 0; j < img->height; ++j) {
-      PIXMEM += 1;
-
-      new_img->pixel[G(new_img, j, img->height - i - 1)] = img->pixel[G(img, i, j)];
+  for (int y = 0; y < img->height; ++y) {
+    for (int x = 0; x < img->width; ++x) {
+      uint8 pixel = ImageGetPixel(img, x, y);
+      ImageSetPixel(new_img, y, img->height - x - 1, pixel);
     }
   }
 
@@ -527,11 +526,10 @@ Image ImageMirror(Image img) {  ///
     return NULL;
   }
 
-  for (int i = 0; i < img->width; ++i) {
-    for (int j = 0; j < img->height; ++j) {
-      PIXMEM += 1;
-
-      new_img->pixel[G(new_img, new_img->width - i - 1, j)] = img->pixel[G(img, i, j)];
+  for (int y = 0; y < img->height; ++y) {
+    for (int x = 0; x < img->height; ++x) {
+      uint8 pixel = ImageGetPixel(img, x, y);
+      ImageSetPixel(new_img, new_img->width - x - 1, y, pixel);
     }
   }
 
@@ -562,9 +560,8 @@ Image ImageCrop(Image img, int x, int y, int w, int h) {  ///
 
   for (int i = x; i < x + w; ++i) {
     for (int j = y; j < y + h; ++j) {
-      PIXMEM += 1;
-
-      new_img->pixel[G(new_img, i - x, j - y)] = img->pixel[G(img, i, j)];
+      uint8 pixel = ImageGetPixel(img, i, j);
+      ImageSetPixel(new_img, i - x, j - x, pixel);
     }
   }
 
@@ -584,9 +581,10 @@ void ImagePaste(Image img1, int x, int y, Image img2) {  ///
   assert(img2 != NULL);
   assert(ImageValidRect(img1, x, y, img2->width, img2->height));
 
-  for (int i = 0; i < img2->width; ++i) {
-    for (int j = 0; j < img2->height; ++j) {
-      img1->pixel[G(img1, x + i, y + j)] = img2->pixel[G(img2, i, j)];
+  for (int y0 = 0; y0 < img2->height; ++y0) {
+    for (int x0 = 0; x0 < img2->width; ++x0) {
+      uint8 pixel = ImageGetPixel(img2, x0, y0);
+      ImageSetPixel(img1, x + x0, y + y0, pixel);
     }
   }
 }
@@ -602,10 +600,10 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) {  ///
   assert(img2 != NULL);
   assert(ImageValidRect(img1, x, y, img2->width, img2->height));
 
-  for (int i = 0; i < img2->width; ++i) {
-    for (int j = 0; j < img2->height; ++j) {
-      uint8 pixel1 = img1->pixel[G(img1, x + i, y + j)];
-      uint8 pixel2 = img2->pixel[G(img2, i, j)];
+  for (int y0 = 0; y0 < img2->height; ++y0) {
+    for (int x0 = 0; x0 < img2->width; ++x0) {
+      uint8 pixel1 = ImageGetPixel(img1, x + x0, y + y0);
+      uint8 pixel2 = ImageGetPixel(img2, x0, y0);
 
       uint8 blended_pixel = round(pixel1 * (1 - alpha) + pixel2 * alpha);
 
@@ -615,7 +613,7 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) {  ///
         blended_pixel = 0;
       }
 
-      img1->pixel[G(img1, x + i, y + j)] = blended_pixel;
+      ImageSetPixel(img1, x + x0, y + y0, blended_pixel);
     }
   }
 }
@@ -630,10 +628,10 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) {  ///
 
   int match = 1;
 
-  for (int i = 0; i < img2->width && match; ++i) {
-    for (int j = 0; j < img2->height && match; ++j) {
-      uint8 pixel1 = img1->pixel[G(img1, i + x, j + y)];
-      uint8 pixel2 = img2->pixel[G(img2, i, j)];
+  for (int y0 = 0; y0 < img2->height && match; ++y0) {
+    for (int x0 = 0; x0 < img2->width && match; ++x0) {
+      uint8 pixel1 = ImageGetPixel(img1, x + x0, y + y0);
+      uint8 pixel2 = ImageGetPixel(img2, x0, y0);
 
       match = pixel1 == pixel2;
     }
