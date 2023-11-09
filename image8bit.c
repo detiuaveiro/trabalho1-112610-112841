@@ -685,7 +685,7 @@ static uint8 RectAvgColor(const Image img, int x, int y, int w, int h) {
 /// Each pixel is substituted by the mean of the pixels in the rectangle
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
-void ImageBlur(Image img, int dx, int dy) {  ///
+void ImageBlur2(Image img, int dx, int dy) {  ///
   assert(img != NULL);
 
   Image img_copy = ImageCreate(img->width, img->height, img->maxval);
@@ -697,19 +697,75 @@ void ImageBlur(Image img, int dx, int dy) {  ///
 
   memcpy(img_copy->pixel, img->pixel, img->height * img->width);
 
-  int x, y, w, h;
+  int x0, y0, w, h;
 
-  for (int row = 0; row < img->height; ++row) {
-    for (int col = 0; col < img->width; ++col) {
-      x = max(0, col - dx);
-      y = max(0, row - dy);
+  for (int y = 0; y < img->height; ++y) {
+    for (int x = 0; x < img->width; ++x) {
+      x0 = max(0, x - dx);
+      y0 = max(0, y - dy);
 
-      w = min(dx + min(dx + 1, col), img->width - col);
-      h = min(dy + min(dy + 1, row), img->height - row);
+      w = min(dx + min(dx + 1, x), img->width - x);
+      h = min(dy + min(dy + 1, y), img->height - y);
 
-      img->pixel[G(img, col, row)] = RectAvgColor(img_copy, x, y, w, h);
+      ImageSetPixel(img, x, y, RectAvgColor(img_copy, x0, y0, w, h));
     }
   }
 
   ImageDestroy(&img_copy);
+}
+
+/// A little better blur algorithm
+void ImageBlur(Image img, int dx, int dy) {
+  assert(img != NULL);
+
+  // An array of the cumulative sum of the pixels row-wise
+  uint32_t* pixels_sum = malloc(img->width * img->height * sizeof(uint32_t));
+
+  if (pixels_sum == NULL) {
+    fprintf(stderr, "ERROR: Failed to allocate memory for pixels sum array: %s\n", strerror(errno));
+    exit(1);
+  }
+
+  for (int y = 0; y < img->height; ++y) {
+    for (int x = 0; x < img->width; ++x) {
+      if (x == 0) {
+        pixels_sum[y * img->width] = ImageGetPixel(img, x, y);
+      } else {
+        pixels_sum[y * img->width + x] = ImageGetPixel(img, x, y) + pixels_sum[y * img->width + x - 1];
+      }
+    }
+  }
+
+  int x0, y0, x1, y1, w, h;
+
+  for (int y = 0; y < img->height; ++y) {
+    for (int x = 0; x < img->width; ++x) {
+      x0 = max(0, x - dx);
+      y0 = max(0, y - dy);
+
+      x1 = min(x + dx, img->width - 1);
+      y1 = min(y + dy, img->height - 1);
+
+      w = x1 - x0 + 1;
+      h = y1 - y0 + 1;
+
+      int sum = 0;
+
+      for (int row = y0; row <= y1; ++row) {
+        uint32_t left_sum;
+
+        if (x0 == 0) {
+          left_sum = 0;
+        } else {
+          left_sum = pixels_sum[row * img->width + x0 - 1];
+        }
+
+        sum += pixels_sum[row * img->width + x1] - left_sum;
+
+        uint8 blured_pixel = round((double)sum / (w * h));
+
+        ImageSetPixel(img, x, y, blured_pixel);
+      }
+    }
+  }
 }
