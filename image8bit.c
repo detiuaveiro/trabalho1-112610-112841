@@ -685,7 +685,9 @@ static uint8 RectAvgColor(const Image img, int x, int y, int w, int h) {
 /// Each pixel is substituted by the mean of the pixels in the rectangle
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
-void ImageBlur2(Image img, int dx, int dy) {  ///
+/// This algorithm takes each pixel and calculates the average color in the
+/// rectangle [x-dx, x+dx]x[y-dy, y+dy]
+void ImageBlur3(Image img, int dx, int dy) {  ///
   assert(img != NULL);
 
   Image img_copy = ImageCreate(img->width, img->height, img->maxval);
@@ -715,7 +717,9 @@ void ImageBlur2(Image img, int dx, int dy) {  ///
 }
 
 /// A little better blur algorithm
-void ImageBlur(Image img, int dx, int dy) {
+/// This algorithm uses an cumulative sum array to re-use the rows sum
+/// in the calculation of the average pixel color inside the rectangle
+void ImageBlur2(Image img, int dx, int dy) {
   assert(img != NULL);
 
   // An array of the cumulative sum of the pixels row-wise
@@ -728,10 +732,10 @@ void ImageBlur(Image img, int dx, int dy) {
 
   for (int y = 0; y < img->height; ++y) {
     for (int x = 0; x < img->width; ++x) {
-      if (x == 0) {
-        pixels_sum[y * img->width] = ImageGetPixel(img, x, y);
-      } else {
-        pixels_sum[y * img->width + x] = ImageGetPixel(img, x, y) + pixels_sum[y * img->width + x - 1];
+      pixels_sum[y * img->width + x] = ImageGetPixel(img, x, y);
+
+      if (x != 0) {
+        pixels_sum[y * img->width + x] += pixels_sum[y * img->width + x - 1];
       }
     }
   }
@@ -751,21 +755,101 @@ void ImageBlur(Image img, int dx, int dy) {
 
       int sum = 0;
 
+      // Calculate the sum of each row using the pixels_sum cumulative sum array defined above
       for (int row = y0; row <= y1; ++row) {
-        uint32_t left_sum;
+        sum += pixels_sum[row * img->width + x1];
 
-        if (x0 == 0) {
-          left_sum = 0;
-        } else {
-          left_sum = pixels_sum[row * img->width + x0 - 1];
-        }
+        // If the left border doesn't touch the image edge
+        if (x0 != 0)
+          sum -= pixels_sum[row * img->width + x0 - 1];
 
-        sum += pixels_sum[row * img->width + x1] - left_sum;
-
-        uint8 blured_pixel = round((double)sum / (w * h));
-
-        ImageSetPixel(img, x, y, blured_pixel);
+        uint8 blurred_pixel = round((double)sum / (w * h));
+        ImageSetPixel(img, x, y, blurred_pixel);
       }
+    }
+  }
+
+  free(pixels_sum);
+}
+
+/// A better blur algorithm
+/// This algorithm uses an cumulative sum array to re-use all the sums
+void ImageBlur(Image img, int dx, int dy) {
+  assert(img != NULL);
+
+  // Each array entry is the cumulative sum of the pixel colors in the rectangle
+  // defined with the left top corner (0, 0) and the right bottom corner (i, j)
+  // Obs: uint32 should be enough for ~ 4100x4100 *white* image
+  uint32_t* pixels_sum = malloc(img->width * img->height * sizeof(uint32_t));
+
+  if (pixels_sum == NULL) {
+    fprintf(stderr, "ERROR: Failed to allocate memory for pixels sum array: %s\n", strerror(errno));
+    exit(1);
+  }
+
+  int x, y;
+
+  // Calculate the first row of the matrix
+  pixels_sum[0] = ImageGetPixel(img, 0, 0);
+  for (x = 1; x < img->width; ++x) {
+    pixels_sum[x] = ImageGetPixel(img, x, 0) + pixels_sum[x - 1];
+  }
+
+  // Calculate the remaining rows of the cumulative sum matrix
+  for (y = 1; y < img->height; ++y) {
+    for (x = 0; x < img->width; ++x) {
+      pixels_sum[y * img->width + x] = ImageGetPixel(img, x, y) + pixels_sum[(y - 1) * img->width + x];
+
+      if (x != 0) {
+        pixels_sum[y * img->width + x] += pixels_sum[y * img->width + x - 1] - pixels_sum[(y - 1) * img->width + x - 1];
+      }
+    }
+  }
+
+  int x0, y0, x1, y1, x2, y2, x3, y3, w, h;
+
+  // For each image pixel, calculate the average pixel color inside the blur rectangle
+  for (y = 0; y < img->height; ++y) {
+    for (x = 0; x < img->width; ++x) {
+      // Top left corner
+      x0 = max(0, x - dx);
+      y0 = max(0, y - dy);
+
+      // Bottom right
+      x1 = min(x + dx, img->width - 1);
+      y1 = min(y + dy, img->height - 1);
+
+      // Top right
+      x2 = x1;
+      y2 = y0;
+
+      // Bottom left
+      x3 = x0;
+      y3 = y1;
+
+      // Needed to calculate the number of pixels in the rectangle to calc the average color of the blurred pixel
+      w = x1 - x0 + 1;
+      h = y1 - y0 + 1;
+
+      // Considering the cumulative sum matrix above, the sum of the pixel colors inside the rectangle is equal to
+      // bottom right corner - bottom left corner - top right corner + top left corner
+      // we add the top left corner, because that sum is subtracted twice (bottom left corner and top right corner)
+      uint32_t sum = pixels_sum[y1 * img->width + x1];
+
+      // Subtract top right corner
+      if (y2 != 0)
+        sum -= pixels_sum[(y2 - 1) * img->width + x2];
+
+      // Subtract bottom left corner
+      if (x3 != 0)
+        sum -= pixels_sum[y3 * img->width + x3 - 1];
+
+      // Re-add top left corner
+      if (x0 != 0 && y0 != 0)
+        sum += pixels_sum[(y0 - 1) * img->width + x0 - 1];
+
+      uint8 blurred_pixel = round((double)sum / (w * h));
+      ImageSetPixel(img, x, y, blurred_pixel);
     }
   }
 
