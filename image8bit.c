@@ -605,7 +605,7 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) {  ///
       uint8 pixel1 = ImageGetPixel(img1, x + x0, y + y0);
       uint8 pixel2 = ImageGetPixel(img2, x0, y0);
 
-      uint8 blended_pixel = round(pixel1 * (1 - alpha) + pixel2 * alpha);
+      int blended_pixel = round(pixel1 * (1 - alpha) + pixel2 * alpha);
 
       if (blended_pixel > img1->maxval) {
         blended_pixel = img1->maxval;
