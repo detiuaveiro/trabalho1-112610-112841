@@ -9,7 +9,7 @@ CFLAGS = -Wall -O2 -g
 
 PROGS = imageTool imageTest
 
-TESTS = test1 test2 test3 test4 test5 test6 test7 test8 test9
+TESTS = test1 test2 test3 test4 test5 test6 test7 test8 test9 test_bird test_art4 test_airfield
 
 # Default rule: make all programs
 all: $(PROGS)
@@ -73,6 +73,21 @@ test9: $(PROGS) setup
 	./imageTool test/original.pgm blur 7,7 save blur.pgm
 	cmp blur.pgm test/blur.pgm
 
+#Adicionado 
+test_bird: $(PROGS) setup
+	./imageTool test/small.pgm pgm/small/bird_256x256.pgm paste 100,100 save pgm/small/paste_bird.pgm
+	./imageTool pgm/small/bird_256x256.pgm blur 7,7 save pgm/small/blur_bird.pgm
+	./imageTool test/original.pgm crop 1,1,1,1 save pgm/small/crop_bird.pgm
+
+test_art4: $(PROGS) setup
+	./imageTool test/small.pgm pgm/small/art4_300x300.pgm paste 100,100 save pgm/small/paste_art4.pgm
+	./imageTool pgm/small/art4_300x300.pgm blur 7,7 save pgm/small/blur_art4.pgm
+
+test_airfield: $(PROGS) setup
+	./imageTool test/small.pgm pgm/medium/airfield-05_640x480.pgm paste 100,100 save pgm/medium/paste_airfield.pgm
+	./imageTool pgm/medium/airfield-05_640x480.pgm blur 7,7 save pgm/medium/blur_airfield.pgm
+
+#
 .PHONY: tests
 tests: $(TESTS)
 

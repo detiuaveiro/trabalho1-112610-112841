@@ -177,11 +177,15 @@ void ImageInit(void) {  ///
   InstrCalibrate();
   InstrName[0] = "pixmem";  // InstrCount[0] will count pixel array acesses
   // Name other counters here...
+  InstrName[1] = "pixcmp";
+  InstrName[2] = "pixadd";
 }
 
 // Macros to simplify accessing instrumentation counters:
 #define PIXMEM InstrCount[0]
 // Add more macros here...
+#define PIXCMP InstrCount[1]
+#define PIXADD InstrCount[2]
 
 // TIP: Search for PIXMEM or InstrCount to see where it is incremented!
 
@@ -353,6 +357,7 @@ void ImageStats(Image img, uint8* min, uint8* max) {  ///
 
   for (int i = 1; i < img->width * img->height; ++i) {
     PIXMEM += 1;
+
     uint8 pixel = img->pixel[i];
 
     if (pixel < *min) {
@@ -390,7 +395,6 @@ int ImageValidRect(Image img, int x, int y, int w, int h) {  ///
 // The returned index must satisfy (0 <= index < img->width*img->height)
 static inline int G(Image img, int x, int y) {
   int index = (y * img->width) + x;
-
   assert(0 <= index && index < img->width * img->height);
   return index;
 }
@@ -438,7 +442,6 @@ void ImageThreshold(Image img, uint8 thr) {  ///
 
   for (int i = 0; i < img->width * img->height; ++i) {
     PIXMEM += 1;
-
     uint8 pixel = img->pixel[i];
 
     if (pixel >= thr) {
@@ -459,7 +462,6 @@ void ImageBrighten(Image img, double factor) {  ///
 
   for (int i = 0; i < img->width * img->height; ++i) {
     PIXMEM += 1;
-
     uint8 new_color = round(img->pixel[i] * factor);
 
     if (new_color > img->maxval) {
@@ -625,14 +627,13 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) {  ///
   assert(img1 != NULL);
   assert(img2 != NULL);
   assert(ImageValidPos(img1, x, y));
-
   int match = 1;
 
   for (int y0 = 0; y0 < img2->height && match; ++y0) {
     for (int x0 = 0; x0 < img2->width && match; ++x0) {
       uint8 pixel1 = ImageGetPixel(img1, x + x0, y + y0);
       uint8 pixel2 = ImageGetPixel(img2, x0, y0);
-
+      PIXCMP += 1;
       match = pixel1 == pixel2;
     }
   }
@@ -657,7 +658,6 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) {  ///
       }
     }
   }
-
   return 0;
 }
 
@@ -673,6 +673,7 @@ static uint8 RectAvgColor(const Image img, int x, int y, int w, int h) {
   for (int row = y; row < y + h; ++row) {
     for (int col = x; col < x + w; ++col) {
       // printf("%d ", ImageGetPixel(img, c, r));
+      PIXADD += 1;
       sum += ImageGetPixel(img, col, row);
     }
     // printf("\n");
@@ -708,7 +709,6 @@ void ImageBlur3(Image img, int dx, int dy) {  ///
 
       w = min(dx + min(dx + 1, x), img->width - x);
       h = min(dy + min(dy + 1, y), img->height - y);
-
       ImageSetPixel(img, x, y, RectAvgColor(img_copy, x0, y0, w, h));
     }
   }
@@ -732,6 +732,7 @@ void ImageBlur2(Image img, int dx, int dy) {
 
   for (int y = 0; y < img->height; ++y) {
     for (int x = 0; x < img->width; ++x) {
+      PIXADD += 1;
       pixels_sum[y * img->width + x] = ImageGetPixel(img, x, y);
 
       if (x != 0) {
@@ -760,15 +761,15 @@ void ImageBlur2(Image img, int dx, int dy) {
         sum += pixels_sum[row * img->width + x1];
 
         // If the left border doesn't touch the image edge
-        if (x0 != 0)
+        if (x0 != 0) {
           sum -= pixels_sum[row * img->width + x0 - 1];
+        }
 
         uint8 blurred_pixel = round((double)sum / (w * h));
         ImageSetPixel(img, x, y, blurred_pixel);
       }
     }
   }
-
   free(pixels_sum);
 }
 
@@ -790,14 +791,17 @@ void ImageBlur(Image img, int dx, int dy) {
   int x, y;
 
   // Calculate the first row of the matrix
+  PIXADD += 1;
   pixels_sum[0] = ImageGetPixel(img, 0, 0);
   for (x = 1; x < img->width; ++x) {
+    PIXADD += 1;
     pixels_sum[x] = ImageGetPixel(img, x, 0) + pixels_sum[x - 1];
   }
 
   // Calculate the remaining rows of the cumulative sum matrix
   for (y = 1; y < img->height; ++y) {
     for (x = 0; x < img->width; ++x) {
+      PIXADD += 1;
       pixels_sum[y * img->width + x] = ImageGetPixel(img, x, y) + pixels_sum[(y - 1) * img->width + x];
 
       if (x != 0) {
@@ -838,6 +842,7 @@ void ImageBlur(Image img, int dx, int dy) {
 
       // Subtract top right corner
       if (y2 != 0)
+
         sum -= pixels_sum[(y2 - 1) * img->width + x2];
 
       // Subtract bottom left corner
