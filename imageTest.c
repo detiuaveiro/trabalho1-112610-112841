@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
 
   ImageInit();
 
-  printf("# LOAD image");
+  printf("# LOAD image\n");
   InstrReset();  // to reset instrumentation
   Image img1 = ImageLoad(argv[1]);
   Image img2 = ImageLoad(argv[2]);
@@ -56,7 +56,9 @@ int main(int argc, char* argv[]) {
 
   printf("# LOCATE image\n");
   InstrReset();  // to reset instrumentation
-  ImageLocateSubImage(img1, 7, 7, img2);
+  int* px = 10;
+  int* py = 10;
+  ImageLocateSubImage(img1, px, py, img2);
   InstrPrint();  // to print instrumentation
 
   // Try changing the behaviour of the program by commenting/uncommenting
