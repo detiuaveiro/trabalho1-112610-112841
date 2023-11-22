@@ -146,29 +146,17 @@ static int check(int condition, const char* failmsg) {
 
 /// Returns the minimum between the integers a and b
 static inline int min(int a, int b) {
-  if (a < b) {
-    return a;
-  }
-
-  return b;
+  return a < b ? a : b;
 }
 
 /// Returns the maximum between the integers a and b
 static inline int max(int a, int b) {
-  if (a > b) {
-    return a;
-  }
-
-  return b;
+  return a > b ? a : b;
 }
 
 /// Rounds the double n to the nearest integer
 static inline int round(double n) {
-  if (n > 0) {
-    return (int)(n + 0.5);
-  }
-
-  return (int)(n - 0.5);
+  return n > 0 ? (int)(n + 0.5) : (int)(n - 0.5);
 }
 
 /// Init Image library.  (Call once!)
