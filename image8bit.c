@@ -688,6 +688,9 @@ void ImageBlur3(Image img, int dx, int dy) {  ///
 
   memcpy(img_copy->pixel, img->pixel, img->height * img->width);
 
+  // Store and load (copy all the pixels)
+  PIXMEM += 2 * img->width * img->height;
+
   int x0, y0, w, h;
 
   for (int y = 0; y < img->height; ++y) {
@@ -720,10 +723,15 @@ void ImageBlur2(Image img, int dx, int dy) {
 
   for (int y = 0; y < img->height; ++y) {
     for (int x = 0; x < img->width; ++x) {
+      // Pixels_sum store
+      PIXMEM += 1;
+
       pixels_sum[y * img->width + x] = ImageGetPixel(img, x, y);
 
       if (x != 0) {
         PIXADD += 1;
+        PIXMEM += 2;
+        // pixels_sum store and load
         pixels_sum[y * img->width + x] += pixels_sum[y * img->width + x - 1];
       }
     }
@@ -747,11 +755,13 @@ void ImageBlur2(Image img, int dx, int dy) {
       // Calculate the sum of each row using the pixels_sum cumulative sum array defined above
       for (int row = y0; row <= y1; ++row) {
         sum += pixels_sum[row * img->width + x1];
+        PIXMEM += 1;
         PIXADD += 1;
 
         // If the left border doesn't touch the image edge
         if (x0 != 0) {
           sum -= pixels_sum[row * img->width + x0 - 1];
+          PIXMEM += 1;
           PIXADD += 1;
         }
 
@@ -780,10 +790,12 @@ void ImageBlur(Image img, int dx, int dy) {
 
   int x, y;
 
-  // Calculate the first row of the matrix
+  PIXMEM += 1;
   pixels_sum[0] = ImageGetPixel(img, 0, 0);
+  // Calculate the first row of the matrix
   for (x = 1; x < img->width; ++x) {
     PIXADD += 1;
+    PIXMEM += 2;  // one store and one load for each iteration
     pixels_sum[x] = ImageGetPixel(img, x, 0) + pixels_sum[x - 1];
   }
 
@@ -791,10 +803,12 @@ void ImageBlur(Image img, int dx, int dy) {
   for (y = 1; y < img->height; ++y) {
     for (x = 0; x < img->width; ++x) {
       PIXADD += 1;
+      PIXMEM += 2;  // one store and one load
       pixels_sum[y * img->width + x] = ImageGetPixel(img, x, y) + pixels_sum[(y - 1) * img->width + x];
 
       if (x != 0) {
         PIXADD += 2;
+        PIXMEM += 3;  // one store and two loads
         pixels_sum[y * img->width + x] += pixels_sum[y * img->width + x - 1] - pixels_sum[(y - 1) * img->width + x - 1];
       }
     }
@@ -828,21 +842,25 @@ void ImageBlur(Image img, int dx, int dy) {
       // Considering the cumulative sum matrix above, the sum of the pixel colors inside the rectangle is equal to
       // bottom right corner - bottom left corner - top right corner + top left corner
       // we add the top left corner, because that sum is subtracted twice (bottom left corner and top right corner)
+      PIXMEM += 1;
       uint32_t sum = pixels_sum[y1 * img->width + x1];
 
       // Subtract top right corner
       if (y2 != 0) {
         PIXADD += 1;
+        PIXMEM += 1;
         sum -= pixels_sum[(y2 - 1) * img->width + x2];
       }
       // Subtract bottom left corner
       if (x3 != 0) {
         PIXADD += 1;
+        PIXMEM += 1;
         sum -= pixels_sum[y3 * img->width + x3 - 1];
       }
       // Re-add top left corner
       if (x0 != 0 && y0 != 0) {
         PIXADD += 1;
+        PIXMEM += 1;
         sum += pixels_sum[(y0 - 1) * img->width + x0 - 1];
       }
       uint8 blurred_pixel = round((double)sum / (w * h));
