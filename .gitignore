@@ -4,6 +4,7 @@
 test/
 imageTest
 imageTool
+imageGen
 .vscode/
 
 # Prerequisites
