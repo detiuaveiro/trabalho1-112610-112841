@@ -202,7 +202,7 @@ Image ImageCreate(int width, int height, uint8 maxval) {  ///
   img->width = width;
   img->height = height;
   img->maxval = maxval;
-  img->pixel = malloc(img->width * img->height);
+  img->pixel = malloc(img->width * img->height * sizeof(uint8));
 
   if (img->pixel == NULL) {
     errCause = "Memory allocation for pixel array failed";
@@ -450,13 +450,13 @@ void ImageBrighten(Image img, double factor) {  ///
 
   for (int i = 0; i < img->width * img->height; ++i) {
     PIXMEM += 1;
-    uint8 new_color = round(img->pixel[i] * factor);
+    int new_color = round(img->pixel[i] * factor);
 
     if (new_color > img->maxval) {
       new_color = img->maxval;
     }
 
-    img->pixel[i] = new_color;
+    img->pixel[i] = (uint8)new_color;
   }
 }
 
@@ -486,6 +486,7 @@ Image ImageRotate(Image img) {  ///
 
   Image new_img = ImageCreate(img->height, img->width, img->maxval);
 
+  // ImageCreate() already sets errno/errCause
   if (new_img == NULL) {
     return NULL;
   }
@@ -512,6 +513,7 @@ Image ImageMirror(Image img) {  ///
 
   Image new_img = ImageCreate(img->width, img->height, img->maxval);
 
+  // ImageCreate() already sets errno/errCause
   if (new_img == NULL) {
     return NULL;
   }
@@ -544,6 +546,7 @@ Image ImageCrop(Image img, int x, int y, int w, int h) {  ///
 
   Image new_img = ImageCreate(w, h, img->maxval);
 
+  // ImageCreate() already sets errno/errCause
   if (new_img == NULL) {
     return NULL;
   }
@@ -660,11 +663,9 @@ static uint8 RectAvgColor(const Image img, int x, int y, int w, int h) {
 
   for (int row = y; row < y + h; ++row) {
     for (int col = x; col < x + w; ++col) {
-      // printf("%d ", ImageGetPixel(img, c, r));
       PIXADD += 1;
       sum += ImageGetPixel(img, col, row);
     }
-    // printf("\n");
   }
 
   return round((double)sum / (w * h));
@@ -723,15 +724,13 @@ void ImageBlur2(Image img, int dx, int dy) {
 
   for (int y = 0; y < img->height; ++y) {
     for (int x = 0; x < img->width; ++x) {
-      // Pixels_sum store
-      PIXMEM += 1;
+      PIXMEM += 1;  // Pixels_sum store
 
       pixels_sum[y * img->width + x] = ImageGetPixel(img, x, y);
 
       if (x != 0) {
         PIXADD += 1;
-        PIXMEM += 2;
-        // pixels_sum store and load
+        PIXMEM += 2;  // pixels_sum store and load
         pixels_sum[y * img->width + x] += pixels_sum[y * img->width + x - 1];
       }
     }
