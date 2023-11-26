@@ -14,7 +14,7 @@
 // NMec: 112841 Name: Francisca Silva
 //
 //
-// Date:
+// Date: 26/11/2023
 //
 
 #include "image8bit.h"
